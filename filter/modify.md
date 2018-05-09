@@ -1,41 +1,27 @@
 # Modify Filter
 
-The _Modify Filter_ plugin allows you to modify a set of keys under a new key
+The _Modify Filter_ plugin allows you to change the structure of a record by
+performing operations based on the keys of its key/value pairs.
 
-## Example usage
+Operations are applied in the order they appear in the configuration. Each
+operation acts on the result of the previous operation.
 
-As an example using JSON notation to,
-
- - Rename 'Key2` to `RenamedKey`
- - Add a key `OtherKey` with value `Value3` if `OtherKey` does not yet exist
-
-_Example (input)_
-```
-{
-  "Key1"     : "Value1",
-  "Key2"     : "Value2"
-}
-
-```
-
-_Example (output)_
-```
-{
-  "Key1"       : "Value1",
-  "RenamedKey" : "Value2",
-  "OtherKey"   : "Value3"
-}
-
-```
+For example, if you use `Add` to create a new key-value pair you can apply the
+`Copy` operation to that pair after that.
 
 ## Configuration Parameters
 
 The plugin supports the following configuration parameters:
 
-| Key                      | Value Format          | Description                          |
-|--------------------------|-----------------------|--------------------------------------|
-| Add\_if\_not\_present    | FIELD VALUE           | Add a record with key `FIELD` and value `VALUE` if `FIELD` is not present |
-| Rename                   | FIELD RENAMED\_FIELD  | Rename a record with key `FIELD` to `RENAMED_FIELD` ||
+| Operation   | Parameter 1    | Parameter 2          |  Description  |
+|-------------|----------------|----------------------|---------------|
+| Set         | STRING:FIELD   | STRING:VALUE         | Add a key/value pair with key `FIELD` and value `VALUE`. If `FIELD` already exists, *this field is overwritten* |
+| Add         | STRING:FIELD   | STRING:VALUE         | Add a key/value pair with key `FIELD` and value `VALUE` if `FIELD` does not exist |
+| Remove      | STRING:FIELD   | NONE                 | Remove a key/value pair with key `FIELD` if it exists |
+| Rename      | STRING:FIELD   | STRING:RENAMED_FIELD | Rename a key/value pair with key `FIELD` to `RENAMED_FIELD` if `FIELD` exists AND `RENAMED_FIELD` *does not exist* |
+| HardRename  | STRING:FIELD   | STRING:RENAMED_FIELD | Rename a key/value pair with key `FIELD` to `RENAMED_FIELD` if `FIELD` exists. If `RENAMED_FIELD` already exists, *this field is overwritten* |
+| Copy        | STRING:FIELD   | STRING:COPIED_FIELD  | Copy a key/value pair with key `FIELD` to `COPIED_FIELD` if `FIELD` exists AND `COPIED_FIELD` *does not exist* |
+| HardCopy    | STRING:FIELD   | STRING:COPIED_FIELD  | Copy a key/value pair with key `FIELD` to `COPIED_FIELD` if `FIELD` exists. If `COPIED_FIELD` already exists, *this field is overwritten* |
 
 ## Getting Started
 
@@ -54,19 +40,23 @@ The following invokes the [Memory Usage Input Plugin](../input/mem.html), which 
 > Note: Using the command line mode requires quotes parse the wildcard properly. The use of a configuration file is recommended.
 
 The following command will load the _mem_ plugin.
-Then the _nest_ filter will match the wildcard rule to the keys and nest the keys matching `Mem.*` under the new key `NEST`.
 
 ```
 bin/fluent-bit -i mem \
   -p 'tag=mem.local' \
   -F modify \
-  -p 'Add_if_not_present=Service1 SOMEVALUE' \
-  -p 'Add_if_not_present=Service2 SOMEVALUE3' \
-  -p 'Add_if_not_present=Mem.total2 TOTALMEM2' \
+  -p 'Set=Service1 VAL_SERVICE1' \
+  -p 'Set=Service2 VAL_SERVICE2' \
+  -p 'Set=Service3 VAL_SERVICE3' \
+  -p 'Hardrename=Service2 Service3' \
+  -p 'Add=Mem.total2 TOTALMEM2' \
   -p 'Rename=Mem.free MEMFREE' \
-  -p 'Rename=Mem.used MEMUSED' \
+  -p 'Copy=Mem.used MEMUSED' \
+  -p 'Copy=Mem.used MEMUSEDCOPY2' \
+  -p 'HardCopy=Mem.used Service1' \
   -p 'Rename=Swap.total SWAPTOTAL' \
-  -p 'Add_if_not_present=Mem.total TOTALMEM' \
+  -p 'Add=Mem.total TOTALMEM' \
+  -p 'Remove=MEMUSEDCOPY2' \
   -m '*' \
   -o stdout
 ```
@@ -85,13 +75,18 @@ bin/fluent-bit -i mem \
 [FILTER]
     Name modify
     Match *
-    Add_if_not_present Service1 SOMEVALUE
-    Add_if_not_present Service3 SOMEVALUE3
-    Add_if_not_present Mem.total2 TOTALMEM2
+    Set Service1 VAL_SERVICE1
+    Set Service2 VAL_SERVICE2
+    Set Service3 VAL_SERVICE3
+    Hardrename Service2 Service3
+    Add Mem.total2 TOTALMEM2
     Rename Mem.free MEMFREE
-    Rename Mem.used MEMUSED
+    Copy Mem.used MEMUSED
+    Copy Mem.used MEMUSEDCOPY2
+    HardCopy Mem.used Service1
     Rename Swap.total SWAPTOTAL
-    Add_if_not_present Mem.total TOTALMEM
+    Add Mem.total TOTALMEM
+    Remove MEMUSEDCOPY2
 ```
 
 ### Result
@@ -100,8 +95,5 @@ The output of both the command line and configuration invocations should be iden
 
 ```
 [2018/04/06 01:35:13] [ info] [engine] started
-[0] mem.local: [1522980610.006892802, {"Mem.total"=>4050908, "MEMUSED"=>738100, "MEMFREE"=>3312808, "SWAPTOTAL"=>1046524, "Swap.used"=>0, "Swap.free"=>1046524, "Service1"=>"SOMEVALUE", "Service3"=>"SOMEVALUE3", "Mem.total2"=>"TOTALMEM2"}]
-[1] mem.local: [1522980611.000658288, {"Mem.total"=>4050908, "MEMUSED"=>738068, "MEMFREE"=>3312840, "SWAPTOTAL"=>1046524, "Swap.used"=>0, "Swap.free"=>1046524, "Service1"=>"SOMEVALUE", "Service3"=>"SOMEVALUE3", "Mem.total2"=>"TOTALMEM2"}]
-[2] mem.local: [1522980612.000307652, {"Mem.total"=>4050908, "MEMUSED"=>738068, "MEMFREE"=>3312840, "SWAPTOTAL"=>1046524, "Swap.used"=>0, "Swap.free"=>1046524, "Service1"=>"SOMEVALUE", "Service3"=>"SOMEVALUE3", "Mem.total2"=>"TOTALMEM2"}]
-[3] mem.local: [1522980613.000122671, {"Mem.total"=>4050908, "MEMUSED"=>738068, "MEMFREE"=>3312840, "SWAPTOTAL"=>1046524, "Swap.used"=>0, "Swap.free"=>1046524, "Service1"=>"SOMEVALUE", "Service3"=>"SOMEVALUE3", "Mem.total2"=>"TOTALMEM2"}]
+
 ```
