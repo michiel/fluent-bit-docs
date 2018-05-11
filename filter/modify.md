@@ -101,6 +101,8 @@ The output of both the command line and configuration invocations should be iden
 
 ## Examples
 
+### Emoji
+
 ```
 [INPUT]
     Name mem
