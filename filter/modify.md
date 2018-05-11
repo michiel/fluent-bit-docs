@@ -97,3 +97,47 @@ The output of both the command line and configuration invocations should be iden
 [2018/04/06 01:35:13] [ info] [engine] started
 
 ```
+
+
+## Examples
+
+```
+[INPUT]
+    Name mem
+    Tag  mem.local
+
+[OUTPUT]
+    Name  stdout
+    Match *
+
+[FILTER]
+    Name modify
+    Match *
+    Set This_plugin_is_on 🔥
+    Set 🔥 is_hot
+    Copy 🔥 💦
+    Rename  💦 ❄️
+    Set ❄️ is_cold
+    Set 💦 is_wet
+```
+
+Output
+
+```
+[2018/04/29 02:17:56] [ info] [engine] started
+[0] mem.local: [1524968277.021970518, {"Mem.total"=>4050908, "Mem.used"=>1410836, "Mem.free"=>2640072, "Swap.total"=>1046524, "Swap.used"=>0, "Swap.free"=>1046524, "This_plugin_is_on"=>"🔥", "🔥"=>"is_hot", "❄️"=>"is_cold", "💦"=>"is_wet"}]
+
+
+{
+  "Mem.total"=>4050908,
+  "Mem.used"=>1410836, 
+  "Mem.free"=>2640072,
+  "Swap.total"=>1046524,
+  "Swap.used"=>0,
+  "Swap.free"=>1046524,
+  "This_plugin_is_on"=>"🔥",
+  "🔥"=>"is_hot",
+  "❄️"=>"is_cold",
+  "💦"=>"is_wet"
+}
+```
